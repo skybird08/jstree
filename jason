@@ -1,0 +1,185 @@
+
+<link rel="stylesheet" href="/viho/dist/themes/default/style.min.css" />
+<h2>카테고리 관리 - <%=login_id%></h2>
+<%
+	Response.Expires = -1
+	Response.CharSet = "EUC-KR"
+
+	userid = Request.Cookies("member")("id")
+	fod_idx	= Request("fod_idx")
+
+	SQL = "SELECT * FROM b_folder WHERE med_usrid="& DBStr(userid) &" ORDER BY fod_order"
+	Set Rs = DB.Execute(SQL)
+%>
+
+<form name="fodInfoform" style="margin:0" method="post" accept-charset="euc-kr"  action="/manage/ajax/ajax_cate_save.asp" onSubmit="return FormSend(this)">
+
+<div class="category_wrap">
+	<div id="categoryLadder" class="ladder" style="width: 230px;"> 
+    	<div class="ladder_header" style="width: 221px;"> 
+        <!--a id="d2w_categoryLadderTypeList" tabindex="0" class="img_selectbox" style="width: 119px;">카테고리</a-->
+        <select id="categoryLadderTypeList" fixedsize="152" class="selectbox_styled"> 
+        	<option value="0">카테고리</option> 
+            <option value="2">그룹</option> 
+        </select> 
+        <a href="#" id="categoryLadderAddBtn" class="ladder_btn_add" title="추가" onclick="sub_fodinfo(0);">추가</a> 
+       	</div> 
+        
+        <ul id="categoryLadderContainer" class="ladder_container" style="width: 228px;">
+        <li>
+        <div id="jstree"> 
+  
+            <%
+				cnt = 1
+				While NOT Rs.EOF
+				fod_info = Rs("fod_name")
+				fod_no  = Rs("fod_no")
+		    %>
+			<ul>
+            <li id="child_node_<%=cnt%>" class="ladder_0" ><a href="#" onclick="sub_fodinfo(<%=fod_no%>);"><%=fod_info%></a> <a href="#" onclick="jstree_up" >up</a>| <a href="#" onclick="jstree_down" >down</a></li>
+            </ul>
+			<%
+				cnt = cnt + 1
+				Rs.MoveNext
+				Wend
+			%>
+        
+        </div>
+        </li>
+        </ul>
+        
+        <div class="ladder_bottom" style="width: 230px"> 
+        	<div id="categoryLadderLadder_move" class="ladder_move_bg"> 
+			<img src="/images/admin/categoryimg_txt.gif">
+        </div> 
+        <div class="ladder_sub"> 
+        	<!--a href="#" id="categoryLadderDelBtn" class="ladder_btn_del" title="삭제" onclick="remove(0);">삭제</a--> 
+        </div>
+    </div> 
+    <div id="categoryLadderDrag" class="ladder_dragComponent" style="top: 0px; display: none; right: auto;">
+    	<ul></ul>
+	</div>
+</div>
+</form>
+
+<!-- 카테고리 세부 관리 시작 -->
+<span id="sp1">
+
+</span>
+<!-- 카테고리 세부 관리 끝 -->
+
+<script type="text/javascript">
+var $ = jQuery.noConflict();
+
+sub_fodinfo = function(fod_no){
+ var x = fod_no;
+ if (x==0)
+ {
+	var url = "/manage/ajax/ajax_cate_info.asp"
+	getPage(url,"sp1");
+
+ }else{
+	 $.ajax({ type: "POST", url: "/manage/ajax/ajax_cate_info.asp", data: "fod_no="+x, success: result } );
+	}
+}
+
+result = function(msg){
+ var sel  =  document.fodInfoform.fod_no;
+ $("#sp1").html(msg); 
+}
+
+ModCategory = function(obj){
+	with(obj){
+		if(!checkForm(obj)) return;
+		if(cOpenN.checked && fodInfoform.fod_default.value=='Y'){
+			alert("기본 폴더를 비공개로 설정하실 수 없습니다.\n홈설정에서 기본 폴더를 변경하세요.");
+			return;
+		}
+		submit();
+	}
+}
+
+sub_foddel = function(obj2){
+ var x = obj2;
+		if(confirm('선택한 항목을 삭제하시겠습니까?')) {
+			document.fodInfoform.action='ajax_cate_delete.asp?fod_no='+x;
+			document.fodInfoform.submit();
+		}
+}
+
+</script>
+
+  <!-- 4 include the jQuery library -->
+  <script src="/_dev/javascript/jquery.js"></script>
+  <!-- 5 include the minified jstree source -->
+  <script src="/_dev/javascript/jstree.js"></script>
+  <script>
+  
+  $(function () {
+    // 6 create an instance when the DOM is ready
+    $('#jstree').jstree({
+	  "core" : {
+		"animation" : 0,
+		"check_callback" : true,
+		//"themes" : { "stripes" : true },
+		//  'url' : function (node) {
+		//	return node.id === '#' ?
+		//	  'ajax_demo_roots.json' : 'ajax_demo_children.json';
+		//  },
+		//  'data' : function (node) {
+		//	return { 'id' : node.id };
+		//  }
+		//}
+	  },
+	  "types" : {
+		"#" : {
+		  "max_children" : 1, 
+		  "max_depth" : 2, 
+		  "valid_children" : ["root"]
+		},
+		"root" : {
+		  "icon" : "/static/3.0.0/assets/images/tree_icon.png",
+		  "valid_children" : ["default"]
+		},
+		"default" : {
+		  "valid_children" : ["default","file"]
+		},
+		"file" : {
+		  "icon" : "glyphicon glyphicon-file",
+		  "valid_children" : []
+		}
+	  },
+		"dnd" : {
+          "drop_finish" : function (data) {
+         alert ("Drag OK");
+          //alert("Dragged: " + data.o.attr('id') + " to " + data.r.attr('id'));         
+        }
+      },
+      "themes" : {
+            "theme" : "classic",
+            "dots" : true,
+            "icons" : false
+        },
+      "json_data" : {
+            "ajax" : {
+                "url" : "get_category_tree.asp"
+            }
+        },
+        "plugins" : [ "themes", "json_data", "ui", "crrm", "checkbox", "dnd" ]
+    })
+
+    .bind("select_node.jstree", function (e, data) {
+
+     // var req = new ZaxasRequest();
+      //req.getContent("category_content.asp?id=" + data.rslt.obj.data('id') +"", "category_content");
+		getAjaxPage("category_content.asp?id="+ data,"jstree");
+           
+				      }
+				}
+} );
+
+	
+	
+  });
+
+  </script>
